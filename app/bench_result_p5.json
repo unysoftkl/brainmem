@@ -1,0 +1,22 @@
+{
+  "forgetting_bench": {
+    "important_recall": 1.0,
+    "one_time_residue": 0.0,
+    "distraction_occupancy": 0.0,
+    "n_nodes_final": 200
+  },
+  "locomo_style": {
+    "single_hop_accuracy": 1.0,
+    "multi_hop_accuracy": 1.0,
+    "f1": 1.0
+  },
+  "longmemeval_style": {
+    "multi_session_accuracy": 1.0
+  },
+  "latency": {
+    "n": 300,
+    "p50_ms": 55.122,
+    "p95_ms": 62.658,
+    "p99_ms": 73.262
+  }
+}

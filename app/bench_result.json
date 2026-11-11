@@ -1,0 +1,18 @@
+{
+  "replay": {
+    "n_events": 100000,
+    "rounds": 100,
+    "consistent_ratio": 1.0,
+    "replay_match_rounds": 100,
+    "replay_match_ratio": 1.0,
+    "total_seconds": 4.32,
+    "per_replay_ms": 43.2
+  },
+  "write": {
+    "n": 10000,
+    "p50_ms": 0.339,
+    "p95_ms": 0.528,
+    "p99_ms": 0.811,
+    "throughput_per_s": 2626.6
+  }
+}

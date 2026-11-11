@@ -1,0 +1,12 @@
+{
+  "decay_max_error_365d": 0.0,
+  "entity_retention": 1.0,
+  "recall_before_compress": 1.0,
+  "recall_after_compress": 1.0,
+  "recall_drop": 0.0,
+  "reconcile": {
+    "checked": 45,
+    "mismatched": 0,
+    "mismatches": []
+  }
+}

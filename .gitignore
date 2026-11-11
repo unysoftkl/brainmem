@@ -1,0 +1,33 @@
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+
+# 数据库（本地数据，不入库）
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+data/
+
+# 日志
+*.log
+
+# 编辑器/系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 本地配置（如含个人路径，可忽略；此处 config.json 是设计参数，要保留）
+# 若要排除个人化配置，取消下一行注释
+# config.local.json

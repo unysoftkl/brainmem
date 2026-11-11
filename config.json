@@ -1,0 +1,13 @@
+{
+  "tenant": "default",
+  "dedup_window_minutes": 5,
+  "storage": "sqlite",
+  "sqlite_path": "%LOCALAPPDATA%\\brainmem\\data\\brainmem.db",
+  "semantic_dedup": false,
+  "weights": {
+    "k": 0.016, "H": 3.0, "C": 0.10, "S0": 8.0, "W_MAX": 20.00,
+    "G0": 2.00, "beta": 1.20, "gamma": 0.80, "S_MAX": 24,
+    "k_e": 0.004, "H_e": 1.5, "C_e": 0.10, "E_MAX": 10.00, "g_e": 1.20,
+    "merge_edge": 8.00, "merge_coact": 5
+  }
+}

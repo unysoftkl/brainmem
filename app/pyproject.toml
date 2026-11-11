@@ -1,0 +1,45 @@
+[project]
+name = "brainmem"
+version = "0.1.0"
+description = "仿脑记忆数据库 · 阶段1 记忆内核"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "ulid-py>=1.1",
+  "numpy>=1.26",
+  "pyyaml>=6.0",
+  "typer>=0.12",
+  "fastmcp>=2.0",          # 阶段5：MCP Server
+  "jieba>=0.42",           # 阶段3：中文分词 / 实体抽取
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1"]   # 阶段6：PostgreSQL 存储
+graph = ["igraph>=0.11", "leidenalg>=0.10", "networkx>=3.3"]  # 阶段4：Leiden 社区检测
+dev = ["pytest>=8", "pytest-cov", "hypothesis>=6", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+brainmem = "brainmem.interfaces.cli:app"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 88
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src/brainmem/core"]

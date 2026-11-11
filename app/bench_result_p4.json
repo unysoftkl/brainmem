@@ -1,0 +1,10 @@
+{
+  "merge_batches": 6,
+  "merge_precision": 1.0,
+  "merge_count": 6,
+  "rollback_weight_error": 0,
+  "parent_hit_rate": 1.0,
+  "consolidate_seconds_small": 0.0784,
+  "n_nodes": 30,
+  "n_edges": 60
+}

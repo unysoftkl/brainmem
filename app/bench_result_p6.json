@@ -1,0 +1,24 @@
+{
+  "sqlite_export": {
+    "nodes": 500,
+    "edges": 30,
+    "events": 552,
+    "events_seq_sorted": true,
+    "replay_weight_mismatch": 0
+  },
+  "pg_static": {
+    "has_pgvector": true,
+    "partitioned": true,
+    "partitions": 4,
+    "hnsw": true,
+    "vector_dim": true,
+    "six_tables": true
+  },
+  "pg_storage_missing_methods": [],
+  "vec_literal_ok": true,
+  "capacity": {
+    "per_node_bytes": 45.6,
+    "est_10m_nodes_GB": 0.5
+  },
+  "pg_live_available": false
+}

@@ -1,0 +1,49 @@
+# 阶段6：PostgreSQL16 + pgvector 一套起（一条命令）
+#   docker compose -f deploy/docker-compose.yml up -d
+#   export BRAINMEM_PG_DSN=postgresql://brainmem:brainmem@127.0.0.1:5432/brainmem
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: brainmem-db
+    environment:
+      POSTGRES_USER: brainmem
+      POSTGRES_PASSWORD: brainmem
+      POSTGRES_DB: brainmem
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brainmem -d brainmem"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "work_mem=64MB"
+      - "-c"
+      - "maintenance_work_mem=512MB"
+      - "-c"
+      - "max_connections=200"
+
+  brainmem:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: brainmem-app
+    environment:
+      BRAINMEM_STORAGE: postgres
+      BRAINMEM_PG_DSN: postgresql://brainmem:brainmem@db:5432/brainmem
+      BRAINMEM_PRESET: fast
+    ports:
+      - "8770:8770"
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["app"]
+
+volumes:
+  pgdata: {}
