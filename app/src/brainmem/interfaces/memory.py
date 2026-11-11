@@ -54,10 +54,10 @@ class Memory:
 
     def merge(self, node_ids: list[str], new_text: str, source: str = "AI",
               mode: str = "soft") -> dict[str, Any]:
-        """合并记忆。mode='soft'（默认，推荐）保留成员+原文+连接，可展开可回滚；
-        mode='hard' 旧行为（删成员、连接重接、原文丢失，不推荐）。"""
-        if mode == "hard":
-            return self.engine.merge(node_ids, new_text, source=source)
+        """合并记忆（**软合并**）：新建父记忆(标题=new_text)，成员全保留、原文汇总进父节点、
+        可展开可回滚。mode 仅为兼容旧调用保留；传其它值会报错（硬合并已移除）。"""
+        if mode != "soft":
+            raise ValueError("仅支持软合并（mode='soft'）；硬合并已移除（它会丢原文/删成员）。")
         return self._consolidator().merge_soft(node_ids, new_text, source=source)
 
     def write_batch(self, items: list[str], **kw: Any) -> list[dict[str, Any]]:

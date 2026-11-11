@@ -106,22 +106,18 @@ def test_merge_requires_strong_links(mem):
         mem.merge([a, b], "早上准备")
     # 反复加强到达标 -> 允许
     _make_strong(mem, a, b, times=10)
-    res = mem.merge([a, b], "早上准备", mode="hard")
-    assert res["merged"] == 2
-    assert res["strong_evidence"], "应记录合并时的强连接证据"
+    res = mem.merge([a, b], "早上准备")       # 默认软合并
+    assert res["mode"] == "soft"
+    assert res["member_count"] == 2
 
 
-def test_merge_creates_parent_and_rewires(mem):
-    """硬合并（mode='hard'）：旧行为——删成员、连接重接。"""
+def test_merge_hard_removed(mem):
+    """硬合并已移除：传 mode='hard' 应报错。"""
     r = mem.ingest(["起床", "刷牙洗脸"])
     a, b = r["atoms"][0]["id"], r["atoms"][1]["id"]
-    other = mem.ingest(["上学"])["atoms"][0]["id"]
-    _make_strong(mem, a, b)                   # a-b 强连接（合并前置条件）
-    mem.link(a, other, "SEQUENCE")            # 连谁由 AI 决定
-    res = mem.merge([a, b], "早上准备出门", mode="hard")
-    assert res["merged"] == 2
-    assert mem.stats()["nodes"] == 2          # 合并后剩 parent + other
-    assert mem.stats()["edges"] == 1          # 原 a->other 改接到 parent->other
+    _make_strong(mem, a, b, times=10)
+    with pytest.raises(ValueError):
+        mem.merge([a, b], "早上准备", mode="hard")
 
 
 def test_merge_soft_keeps_members_and_verbatim(mem):

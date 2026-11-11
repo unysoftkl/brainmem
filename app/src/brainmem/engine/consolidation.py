@@ -129,7 +129,7 @@ class Consolidator:
         """按指定成员做**软合并**：新建一个 ABSTRACT 父节点（标题 new_text），
         用 MEMBER_OF 边把每个成员挂到父节点下，**成员全部保留、原文不丢、连接原样都在**。
 
-        与硬合并（engine.merge 删旧节点）相反：这里旧记忆一条不删，
+        与"硬合并"相反：这里旧记忆一条不删，
         展开父节点即可看到"原来几条记忆及其相互连接"。可 merge_undo 回滚。
         """
         from brainmem.core.tables import MAX_LABEL_CHARS
