@@ -9,6 +9,7 @@ from typing import Protocol
 class BlobStore(Protocol):
     def put(self, data: bytes) -> str: ...
     def get(self, ref: str) -> bytes: ...
+    def delete(self, ref: str) -> bool: ...
 
 
 class InMemoryBlobStore:
@@ -24,6 +25,9 @@ class InMemoryBlobStore:
 
     def get(self, ref: str) -> bytes:
         return self._d[ref]
+
+    def delete(self, ref: str) -> bool:
+        return self._d.pop(ref, None) is not None
 
 
 class LocalFileBlobStore:
@@ -47,3 +51,13 @@ class LocalFileBlobStore:
         h = ref.split(":", 1)[1]
         with open(os.path.join(self.root, h[:2], h), "rb") as f:
             return f.read()
+
+    def delete(self, ref: str) -> bool:
+        """删除一个 blob（仅用于确认无人再引用后清理）。返回是否真的删了。"""
+        h = ref.split(":", 1)[1]
+        path = os.path.join(self.root, h[:2], h)
+        try:
+            os.remove(path)
+            return True
+        except FileNotFoundError:
+            return False

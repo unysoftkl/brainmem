@@ -77,3 +77,10 @@ description: 往 brainmem 记忆库写入/整理记忆时的流程。记忆库�
 - **atoms 照旧压到 10 字以内**（短=权重高=难忘）；它只是索引，不是内容。
 - **日志（logs/YYYY-MM-DD.md）继续写、写详细**——主人要看，且是真相源。
 - 一句话记牢：**atoms 是书脊上的书名，text 是整本书，日志是图书馆。三层都要。**
+
+## 🧹 归零清理（自动遗忘）
+- 记忆权重随时间衰减，**衰减到 0 会自动物理删除**（连边一起删、原文冷存也清）——这是"真正的遗忘"。
+- **自动执行**：Windows 计划任务 `brainmem-sweep-daily` 每天 03:00 跑一次 `sweep --apply`，日志在 `logs/sweep.log`。
+- **手动预览**：`python -m brainmem.interfaces.cli sweep`（默认 dry-run，只列"将删清单"，加 `--apply` 才真删）。
+- MCP 工具 `memory_sweep(dry_run=True)` 同样可用（DSH 重启后暴露）。
+- 不做实时刷新：只有"归零"这一件事会被处理，没归零的记忆一个字节都不动。

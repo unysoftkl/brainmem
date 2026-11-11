@@ -207,6 +207,23 @@ def merge_undo(batch_id: str, config: str | None = typer.Option(None)) -> None:
     m.close()
 
 
+@app.command()
+def sweep(
+    apply: bool = typer.Option(False, "--apply", help="真正执行删除（默认只预览 dry-run）"),
+    config: str | None = typer.Option(None),
+) -> None:
+    """归零清理：把权重已衰减到 0 的记忆物理删除（连边、清冷存）。默认只预览。"""
+    m = _mem(config)
+    res = m.sweep_expired(dry_run=not apply)
+    mode = "真删" if apply else "预览(dry-run)"
+    typer.echo(f"[{mode}] 扫描 {res['scanned']} 条，已归零 {res['expired']} 条，本次删除 {res['deleted']} 条")
+    for it in res["items"]:
+        typer.echo(f"  - {it['label'][:30]}  (w_bp={it['weight_bp']}, 静置 {it['days_since_touch']} 天, 原文{'有' if it['has_verbatim'] else '无'})")
+    if not apply and res["expired"]:
+        typer.echo("（以上为预览，加 --apply 才真正删除）")
+    m.close()
+
+
 # 注：原 `normalize` 命令（全局乘性归一）已移除，见 engine/consolidation.py 顶部说明。
 
 

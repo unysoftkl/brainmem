@@ -342,6 +342,19 @@ class MemoryEngine:
                 pass
         return node.label
 
+    def _purge_blob_if_unused(self, ref: str | None, exclude_id: str) -> bool:
+        """安全清理冷存 blob：仅当没有任何其它现存节点还引用同一 ref 时才删。
+        blob 按内容哈希共享，删前必须确认独占，否则会误删别人的原文。"""
+        if not ref:
+            return False
+        for other in self.storage.list_nodes(self.tenant):
+            if other.id != exclude_id and other.verbatim_ref == ref:
+                return False  # 还有别的节点在用，保留
+        try:
+            return bool(self.blob_store.delete(ref))
+        except Exception:
+            return False
+
     def _project(self, node: MemoryNode) -> int:
         """惰性求值：不改变状态，只算出当前权重（不落库、不推进 last_touch）。"""
         return decay_bp(node.weight_bp, node.stability, self.clock.now_day() - node.last_touch_at, self.p)
@@ -358,6 +371,47 @@ class MemoryEngine:
             return {"id": updated.id, "weight": show(updated.weight_bp),
                     "state": updated.state.value, "deleted": deleted}
 
+    def sweep_expired(self, dry_run: bool = True) -> dict[str, Any]:
+        """**归零清理**：扫描全部记忆，只对"权重已归零"的节点做物理删除（连边一起，原文清冷存）。
+
+        - 不刷新、不重算那些还没归零的记忆——它们的 weight_bp 一个字节都不动（惰性结算照旧，
+          读取时 decay_bp 现算本来就是对的）。
+        - 只动"已归零"这个最小集合，写操作极少。
+        - dry_run=True（默认）：只列出"将删除清单"，不真删；确认无误后可 dry_run=False 真删。
+
+        返回：{"dry_run","day","scanned","expired","deleted","items":[...]}"""
+        now = self.clock.now_day()
+        expired: list[dict[str, Any]] = []
+        for n in self.storage.list_nodes(self.tenant):
+            proj = decay_bp(n.weight_bp, n.stability, now - n.last_touch_at, self.p)
+            if proj <= 0:  # 已归零
+                expired.append({
+                    "id": n.id, "label": n.label,
+                    "weight_bp": n.weight_bp,
+                    "state": n.state.value,
+                    "days_since_touch": round(now - n.last_touch_at, 2),
+                    "has_verbatim": bool(n.verbatim_ref),
+                })
+
+        deleted = 0
+        if not dry_run and expired:
+            for item in expired:
+                with self.storage.transaction() as tx:
+                    node = tx.get_node(item["id"])
+                    if node is None:
+                        continue
+                    updated, was_deleted = self._apply_decay(tx, node, now)
+                    if was_deleted:
+                        deleted += 1
+        return {
+            "dry_run": dry_run,
+            "day": now,
+            "scanned": len(self.storage.list_nodes(self.tenant)),
+            "expired": len(expired),
+            "deleted": deleted,
+            "items": expired,
+        }
+
     def _apply_decay(
         self, tx: Storage, node: MemoryNode, day: float
     ) -> tuple[MemoryNode, bool]:
@@ -368,9 +422,20 @@ class MemoryEngine:
         old_state = node.state
         new_state = state_of(new_wb)
         if new_state == State.DELETED:
-            tx.append_event(make_event(node, EventType.DELETE, node.weight_bp, 0, "weight_zero", "system", self.clock))
+            # 物理删除前：记录被连带删除的边（审计），供对账/追溯
+            cut_edges = [
+                {"edge_id": e.id, "relation": e.relation.value,
+                 "other": (e.dst_id if e.src_id == node.id else e.src_id),
+                 "edge_weight": round(e.weight_bp / BP, 4)}
+                for e in self.storage.incident(node.id, limit=500)
+            ]
+            tx.append_event(make_event(node, EventType.DELETE, node.weight_bp, 0,
+                                       f"weight_zero;edges_cut={len(cut_edges)}", "system", self.clock))
             tx.delete_node(node.id)
-            return node.model_copy(update={"weight_bp": 0, "state": State.DELETED, "last_touch_at": day}), True
+            # 清理该节点独占的 verbatim 冷存（共享的 blob 不动）
+            self._purge_blob_if_unused(node.verbatim_ref, exclude_id=node.id)
+            return node.model_copy(update={"weight_bp": 0, "state": State.DELETED,
+                                           "last_touch_at": day, "verbatim_ref": None}), True
         updated = node.model_copy(update={"weight_bp": new_wb, "last_touch_at": day, "state": new_state})
         if new_state != old_state:
             if STATE_LEVEL[new_state] < STATE_LEVEL[old_state]:

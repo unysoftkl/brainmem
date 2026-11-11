@@ -186,3 +186,48 @@ def test_get_with_use_boosts(mem):
     w0 = float(mem.get(nid)["weight"])
     mem.feedback(nid)  # 等价 memory_get(use=True) 走底层
     assert float(mem.get(nid)["weight"]) > w0
+
+
+# ---------------------------------------------------------------- 归零清理 sweep
+def test_sweep_dry_run_lists_expired_without_deleting(mem, clock):
+    """dry_run 只列清单、不真删。"""
+    r = mem.ingest(["测试记忆"], text="这是原文，用来验证归零后连原文一起清。", note_title="测")
+    nid = r["atoms"][0]["id"]
+    # 让时间推得非常久，确保归零
+    clock.advance_days(100000)
+    res = mem.sweep_expired(dry_run=True)
+    assert res["dry_run"] is True
+    assert res["expired"] >= 1
+    ids = {x["id"] for x in res["items"]}
+    assert nid in ids
+    # 没删：还在
+    assert nid in {n["id"] for n in mem.list_nodes()}
+    assert res["deleted"] == 0
+
+
+def test_sweep_real_delete_removes_node_edges(mem, clock):
+    """真删：归零节点被物理删除，连边一起删，其余记忆不动。"""
+    r1 = mem.ingest(["会忘的"])
+    a = r1["atoms"][0]["id"]
+    r2 = mem.ingest(["留着的"])
+    b = r2["atoms"][0]["id"]
+    mem.link(a, b, "ASSOCIATED")
+    # 只有 a 归零：把 b 的权重抬高、并把时间推进到 a 归零但不影响判断（都归零也行，这里只验证删干净）
+    clock.advance_days(100000)
+    res = mem.sweep_expired(dry_run=False)
+    nodes_after = {n["id"] for n in mem.list_nodes()}
+    # a、b 都归零了都会被删；关键：边不残留
+    assert a not in nodes_after
+    exp_edges = mem.storage.all_edges("default")
+    assert all((e.src_id != a and e.dst_id != a) for e in exp_edges)
+    assert res["deleted"] >= 1
+
+
+def test_sweep_keeps_live_memory(mem, clock):
+    """没归零的记忆绝不能被 sweep 删。"""
+    r = mem.ingest(["新鲜的"])
+    nid = r["atoms"][0]["id"]
+    clock.advance_days(0.5)          # 只过半天，绝不可能归零
+    res = mem.sweep_expired(dry_run=False)
+    assert nid in {n["id"] for n in mem.list_nodes()}
+    assert res["deleted"] == 0

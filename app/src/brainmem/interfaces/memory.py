@@ -72,6 +72,10 @@ class Memory:
     def settle(self, node_id: str, day: float | None = None) -> dict[str, Any]:
         return self.engine.settle(node_id, day)
 
+    def sweep_expired(self, dry_run: bool = True) -> dict[str, Any]:
+        """归零清理：只物理删除"权重已归零"的记忆（连边、清冷存）。dry_run 默认只列清单。"""
+        return self.engine.sweep_expired(dry_run=dry_run)
+
     def stats(self, tenant: str | None = None) -> dict[str, Any]:
         return self.engine.stats(tenant)
 

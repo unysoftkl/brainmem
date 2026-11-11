@@ -128,6 +128,17 @@ def memory_forget(node_id: str, mode: str = "hard") -> dict:
 
 
 @mcp.tool
+def memory_sweep(dry_run: bool = True) -> dict:
+    """**归零清理**：只把"权重已衰减到 0"的记忆物理删除（连边一起删、原文清冷存）。
+
+    - 不刷新/不重算还没归零的记忆（惰性结算照旧，读取时现算衰减）。
+    - dry_run=True（默认）：只返回"将删除清单"，什么都不删；确认无误后传 dry_run=False 才真删。
+    - 建议每天调一次（配定时任务），实现"归零的记忆自动消失"。
+    """
+    return _mem().sweep_expired(dry_run=dry_run)
+
+
+@mcp.tool
 def memory_stats(tenant: str | None = None) -> dict:
     """统计：节点/边数、平均权重、状态分布。"""
     return _mem().stats(tenant)
@@ -148,8 +159,8 @@ def memory_inspect(node_id: str) -> dict:
 TOOL_NAMES = [
     "memory_ingest", "memory_reinforce", "memory_simplify", "memory_merge",
     "memory_search", "memory_get", "memory_feedback", "memory_link",
-    "memory_link_many", "memory_forget", "memory_stats", "memory_explain",
-    "memory_inspect",
+    "memory_link_many", "memory_forget", "memory_sweep", "memory_stats",
+    "memory_explain", "memory_inspect",
 ]
 
 

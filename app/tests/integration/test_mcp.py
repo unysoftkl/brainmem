@@ -21,7 +21,7 @@ async def test_mcp_tools_listed_and_callable():
         tools = await client.list_tools()
         names = {t.name for t in tools}
         assert set(mcp_server.TOOL_NAMES).issubset(names), names
-        assert len(mcp_server.TOOL_NAMES) == 13
+        assert len(mcp_server.TOOL_NAMES) == 14
         # 拆分/预览类工具已撤下（拆分是 AI 的事）
         for gone in ("memory_write", "memory_write_note", "memory_write_batch",
                      "memory_split_preview"):
