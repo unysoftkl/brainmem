@@ -160,16 +160,38 @@ def graph(
     out: str = typer.Option("relationship.html", help="输出 HTML 文件路径"),
     focus: str | None = typer.Option(None, help="只显示与某条记忆直接相连的子图"),
     open_browser: bool = typer.Option(False, "--open", help="生成后自动用浏览器打开"),
+    view: str = typer.Option("2d", "--view", help="视图：2d（力导向星空）/ 3d（3D 星系）"),
     config: str | None = typer.Option(None),
 ) -> None:
-    """导出关系图（交互式 HTML/SVG，双击浏览器打开）。"""
+    """导出记忆可视化（2d 力导向星空 / 3d 三维星图），双击浏览器打开。"""
     import os
-    from brainmem.interfaces.viz import export_graph_html
 
-    m = _mem(config)
-    path = export_graph_html(m.engine, out, focus)
-    typer.echo(f"关系图已生成: {path}（用浏览器打开）")
-    m.close()
+    if view == "3d":
+        from brainmem.interfaces.viz_3d import export_graph_html
+        m = _mem(config)
+        path = export_graph_html(m.engine, out, focus)
+        m.close()
+    elif view == "2d":
+        # 2D 视图直接读 SQLite（与 WorkBuddy 版同源），通过环境变量传参
+        import sys
+        import runpy
+        if config:
+            import json as _json
+            cfg = _json.load(open(config, encoding="utf-8-sig"))
+            sp = cfg.get("sqlite_path", "")
+            sp = sp.replace("%LOCALAPPDATA%", os.environ.get("LOCALAPPDATA", ""))
+            if sp:
+                os.environ["BRAINMEM_DB"] = sp
+        os.environ["BRAINMEM_OUT"] = out
+        os.environ["BRAINMEM_NO_OPEN"] = "1"
+        mod_path = os.path.join(os.path.dirname(__file__), "viz_2d.py")
+        runpy.run_path(mod_path, run_name="__main__")
+        path = os.path.abspath(out)
+    else:
+        typer.echo(f"未知视图: {view}（可用 2d / 3d）")
+        raise typer.Exit(1)
+
+    typer.echo(f"记忆可视化已生成（{view}）: {path}")
     if open_browser:
         try:
             os.startfile(path)  # type: ignore[attr-defined]
