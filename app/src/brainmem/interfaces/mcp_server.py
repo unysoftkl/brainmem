@@ -65,13 +65,20 @@ def memory_simplify(node_id: str, new_text: str, source: str = "AI") -> dict:
 
 
 @mcp.tool
-def memory_merge(node_ids: list[str], new_text: str, source: str = "AI") -> dict:
-    """把多条记忆合并成一条更概括的（≤10 字）并加权重。原节点删除，其关联边改接到新节点。
+def memory_merge(node_ids: list[str], new_text: str, source: str = "AI",
+                 mode: str = "soft") -> dict:
+    """把多条记忆合并成一个**更概括的父记忆**（标题 ≤100 字）并加权重。
 
-    **前置条件（计划书 6.3）**：待合并的记忆之间必须已由「强连接」连通——
-    边权 ≥ 8.00 且 共激活 ≥ 5，且连接自身寿命 ≥365 天，否则拒绝。
-    先加强记忆之间的联系，够了才允许合并。连谁仍由你决定，这里只做权重与结构搬运。"""
-    return _mem().merge(node_ids, new_text, source=source)
+    **默认 mode="soft"（软合并，推荐）**：新建父记忆（标题=new_text），用 MEMBER_OF 边
+    把原记忆全部挂在父节点下——**成员一条不删、原文不丢、它们之间的连接原样都在**。
+    检索命中父标题后可展开看到"原来几条记忆连在一起的样子"；可用 batch_id 回滚。
+    这是记忆长文本/可复原的正道。
+
+    mode="hard"：旧行为，删除成员节点、连接重接、原文丢失（不推荐，仅兼容保留）。
+
+    前置条件（计划书 6.3）：待合并记忆之间必须已由「强连接」连通——边权≥8.00、
+    共激活≥5、且该连接自身寿命≥365 天，否则拒绝。先 memory_link 反复加强，够了再合并。"""
+    return _mem().merge(node_ids, new_text, source=source, mode=mode)
 
 
 @mcp.tool

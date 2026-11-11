@@ -52,8 +52,13 @@ class Memory:
     def simplify(self, node_id: str, new_text: str, source: str = "AI") -> dict[str, Any]:
         return self.engine.simplify(node_id, new_text, source=source)
 
-    def merge(self, node_ids: list[str], new_text: str, source: str = "AI") -> dict[str, Any]:
-        return self.engine.merge(node_ids, new_text, source=source)
+    def merge(self, node_ids: list[str], new_text: str, source: str = "AI",
+              mode: str = "soft") -> dict[str, Any]:
+        """合并记忆。mode='soft'（默认，推荐）保留成员+原文+连接，可展开可回滚；
+        mode='hard' 旧行为（删成员、连接重接、原文丢失，不推荐）。"""
+        if mode == "hard":
+            return self.engine.merge(node_ids, new_text, source=source)
+        return self._consolidator().merge_soft(node_ids, new_text, source=source)
 
     def write_batch(self, items: list[str], **kw: Any) -> list[dict[str, Any]]:
         return [self.engine.write(t, **kw) for t in items]

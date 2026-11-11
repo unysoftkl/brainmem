@@ -685,6 +685,13 @@ class MemoryEngine:
         if text and text.strip():
             title = (note_title or cleaned[0])[:max_chars]
             note_res = self.write_note(title, text.strip(), source=source)
+            # 用 source_id 让每个原子"指向自己的原文 note"（不是建边，保持"不自动建边"契约）。
+            # 这样合并原子时能顺着 source_id 找回原文，卷进父节点 → 可复原的长文本。
+            with self.storage.transaction() as tx:
+                for a in results:
+                    n = tx.get_node(a["id"])
+                    if n is not None:
+                        tx.upsert_node(n.model_copy(update={"source_id": note_res["id"]}))
         return {
             "atoms": [{"text": t, "id": results[i]["id"],
                        "weight": results[i]["weight"], "state": results[i]["state"]}

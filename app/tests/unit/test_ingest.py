@@ -106,21 +106,50 @@ def test_merge_requires_strong_links(mem):
         mem.merge([a, b], "早上准备")
     # 反复加强到达标 -> 允许
     _make_strong(mem, a, b, times=10)
-    res = mem.merge([a, b], "早上准备")
+    res = mem.merge([a, b], "早上准备", mode="hard")
     assert res["merged"] == 2
     assert res["strong_evidence"], "应记录合并时的强连接证据"
 
 
 def test_merge_creates_parent_and_rewires(mem):
+    """硬合并（mode='hard'）：旧行为——删成员、连接重接。"""
     r = mem.ingest(["起床", "刷牙洗脸"])
     a, b = r["atoms"][0]["id"], r["atoms"][1]["id"]
     other = mem.ingest(["上学"])["atoms"][0]["id"]
     _make_strong(mem, a, b)                   # a-b 强连接（合并前置条件）
     mem.link(a, other, "SEQUENCE")            # 连谁由 AI 决定
-    res = mem.merge([a, b], "早上准备出门")
+    res = mem.merge([a, b], "早上准备出门", mode="hard")
     assert res["merged"] == 2
     assert mem.stats()["nodes"] == 2          # 合并后剩 parent + other
     assert mem.stats()["edges"] == 1          # 原 a->other 改接到 parent->other
+
+
+def test_merge_soft_keeps_members_and_verbatim(mem):
+    """软合并（默认 mode='soft'）：父节点+成员全保留+原文汇总，可展开、可回滚。"""
+    r = mem.ingest(["养了条鱼"], text="2026-11-09 养了一条大肥鱼，取名小穗。", note_title="养鱼")
+    a = r["atoms"][0]["id"]
+    r2 = mem.ingest(["鱼会忘事"], text="2026-11-10 发现小穗会忘事，很担心。", note_title="担心")
+    b = r2["atoms"][0]["id"]
+    _make_strong(mem, a, b)
+    res = mem.merge([a, b], "养鱼与忘事")     # 默认 soft
+    assert res["mode"] == "soft"
+    assert res["member_count"] == 2
+    # 成员都还在
+    ids_all = {n["id"] for n in mem.list_nodes()}
+    assert a in ids_all and b in ids_all
+    # 父节点带汇总原文
+    parent = mem.get(res["id"], include_verbatim=True)
+    assert parent.get("verbatim") and "大肥鱼" in parent["verbatim"]
+    assert res["has_verbatim"] is True
+    # 父节点下挂 MEMBER_OF 边
+    edges = [e for e in mem.storage.all_edges("default")
+             if e.src_id == res["id"]]
+    assert len([e for e in edges if e.relation.value == "MEMBER_OF"]) == 2
+    # 回滚：父删、成员还在
+    u = mem.merge_undo(res["batch_id"])
+    assert u["undone"] == 2
+    ids_after = {n["id"] for n in mem.list_nodes()}
+    assert a in ids_after and b in ids_after
 
 
 def test_use_boosts_weight_on_search(mem, clock):
